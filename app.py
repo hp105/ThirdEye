@@ -14,6 +14,29 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 def index():
     return send_from_directory('.', 'index.html')
 
+LANGUAGE_NAMES = {
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'bn': 'Bengali',
+    'nl': 'Dutch',
+    'pl': 'Polish',
+    'tr': 'Turkish',
+    'vi': 'Vietnamese',
+    'th': 'Thai',
+    'id': 'Indonesian',
+    'uk': 'Ukrainian'
+}
+
 @app.route('/analyze', methods=['POST'])
 def analyze_image():
     try:
@@ -22,6 +45,7 @@ def analyze_image():
             return jsonify({'error': 'No data provided'}), 400
             
         image_data = data.get('image')
+        language_code = data.get('language', 'en')
         
         if not image_data:
             return jsonify({'error': 'No image data provided'}), 400
@@ -31,7 +55,8 @@ def analyze_image():
         
         image_bytes = base64.b64decode(image_data)
         
-        prompt = "Describe this image concisely, in a single sentence, for a screen reader or visually impaired user."
+        language_name = LANGUAGE_NAMES.get(language_code, 'English')
+        prompt = f"Describe this image concisely, in a single sentence, for a screen reader or visually impaired user. Respond in {language_name}."
         
         response = client.models.generate_content(
             model="gemini-2.5-flash",

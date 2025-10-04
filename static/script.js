@@ -4,10 +4,17 @@ const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
+const languageSelect = document.getElementById('languageSelect');
+const speedSlider = document.getElementById('speedSlider');
+const speedValue = document.getElementById('speedValue');
 
 let stream = null;
 let captureInterval = null;
 let isProcessing = false;
+
+speedSlider.addEventListener('input', (e) => {
+    speedValue.textContent = e.target.value + 'x';
+});
 
 function updateStatus(status, message) {
     statusDot.className = `status-dot ${status}`;
@@ -50,6 +57,7 @@ async function startCamera() {
         
         startBtn.disabled = true;
         stopBtn.disabled = false;
+        languageSelect.disabled = true;
         
         updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
         
@@ -77,8 +85,9 @@ function stopCamera() {
     
     startBtn.disabled = false;
     stopBtn.disabled = true;
+    languageSelect.disabled = false;
     
-    updateStatus('', 'Camera stopped');
+    updateStatus('', 'Ready to start');
 }
 
 async function captureAndAnalyze() {
@@ -97,13 +106,17 @@ async function captureAndAnalyze() {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        const selectedLanguage = languageSelect.value;
         
         const response = await fetch('/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ image: imageData })
+            body: JSON.stringify({ 
+                image: imageData,
+                language: selectedLanguage
+            })
         });
         
         if (!response.ok) {
@@ -146,7 +159,7 @@ function speakText(text) {
         }
         
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
+        utterance.rate = parseFloat(speedSlider.value);
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         
