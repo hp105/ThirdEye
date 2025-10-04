@@ -34,33 +34,22 @@ def analyze_image():
         prompt = "Describe this image concisely, in a single sentence, for a screen reader or visually impaired user."
         
         response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash",
             contents=[
                 types.Part.from_bytes(
                     data=image_bytes,
                     mime_type="image/jpeg",
                 ),
                 prompt
-            ],
-            config=types.GenerateContentConfig(
-                response_modalities=['AUDIO']
-            )
+            ]
         )
         
-        if response.candidates and len(response.candidates) > 0:
-            content = response.candidates[0].content
-            
-            if content and content.parts:
-                for part in content.parts:
-                    if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith('audio/'):
-                        if part.inline_data.data:
-                            audio_base64 = base64.b64encode(part.inline_data.data).decode('utf-8')
-                            return jsonify({
-                                'audio': audio_base64,
-                                'mime_type': part.inline_data.mime_type
-                            })
+        if response.text:
+            return jsonify({
+                'text': response.text
+            })
         
-        return jsonify({'error': 'No audio response generated'}), 500
+        return jsonify({'error': 'No text response generated'}), 500
         
     except Exception as e:
         print(f"Error: {str(e)}")

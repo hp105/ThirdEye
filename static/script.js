@@ -18,6 +18,13 @@ async function startCamera() {
     try {
         updateStatus('', 'Requesting camera access...');
         
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const silentUtterance = new SpeechSynthesisUtterance('');
+            silentUtterance.volume = 0;
+            window.speechSynthesis.speak(silentUtterance);
+        }
+        
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'environment' },
@@ -105,9 +112,9 @@ async function captureAndAnalyze() {
         
         const data = await response.json();
         
-        if (data.audio) {
-            updateStatus('active', 'Playing audio description...');
-            await playAudio(data.audio, data.mime_type);
+        if (data.text) {
+            updateStatus('active', 'Speaking description...');
+            await speakText(data.text);
             updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
         } else if (data.error) {
             throw new Error(data.error);
@@ -126,48 +133,35 @@ async function captureAndAnalyze() {
     }
 }
 
-function playAudio(base64Audio, mimeType) {
+function speakText(text) {
     return new Promise((resolve, reject) => {
-        try {
-            const audioBlob = base64ToBlob(base64Audio, mimeType);
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            
-            audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
-                resolve();
-            };
-            
-            audio.onerror = (error) => {
-                URL.revokeObjectURL(audioUrl);
-                reject(error);
-            };
-            
-            audio.play();
-            
-        } catch (error) {
-            reject(error);
+        if (!('speechSynthesis' in window)) {
+            console.warn('Text-to-speech not supported, skipping audio');
+            resolve();
+            return;
         }
+        
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+        }
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        utterance.onend = () => {
+            resolve();
+        };
+        
+        utterance.onerror = (event) => {
+            const errorMsg = event.error || 'Speech synthesis error';
+            console.warn('Speech error:', errorMsg, '- continuing anyway');
+            resolve();
+        };
+        
+        window.speechSynthesis.speak(utterance);
     });
-}
-
-function base64ToBlob(base64, mimeType) {
-    const byteCharacters = atob(base64);
-    const byteArrays = [];
-    
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-        const slice = byteCharacters.slice(offset, offset + 512);
-        const byteNumbers = new Array(slice.length);
-        
-        for (let i = 0; i < slice.length; i++) {
-            byteNumbers[i] = slice.charCodeAt(i);
-        }
-        
-        const byteArray = new Uint8Array(byteNumbers);
-        byteArrays.push(byteArray);
-    }
-    
-    return new Blob(byteArrays, { type: mimeType });
 }
 
 startBtn.addEventListener('click', startCamera);
