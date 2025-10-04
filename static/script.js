@@ -18,10 +18,26 @@ async function startCamera() {
     try {
         updateStatus('', 'Requesting camera access...');
         
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
-            audio: false
-        });
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' },
+                audio: false
+            });
+        } catch (envError) {
+            console.log('Rear camera not available, trying front camera...');
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' },
+                    audio: false
+                });
+            } catch (userError) {
+                console.log('Specific camera not available, trying default...');
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+            }
+        }
         
         video.srcObject = stream;
         
