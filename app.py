@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+import time
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from google import genai
@@ -29,11 +30,74 @@ except Exception as e:
 def index():
     return send_from_directory('.', 'index.html')
 
+# Store the latest uploaded image from Arduino
+latest_arduino_image = None
+latest_arduino_timestamp = None
+
+@app.route('/upload-arduino-image', methods=['POST'])
+def upload_arduino_image():
+    """
+    Endpoint for Arduino to upload images
+    Arduino should POST image data to this endpoint
+    """
+    global latest_arduino_image, latest_arduino_timestamp
+    
+    try:
+        # Check if image is in request files
+        if 'image' in request.files:
+            file = request.files['image']
+            image_bytes = file.read()
+        # Or check if it's raw binary data
+        elif request.data:
+            image_bytes = request.data
+        # Or check if it's base64 in JSON
+        elif request.json and 'image' in request.json:
+            image_data = request.json['image']
+            if image_data.startswith('data:image'):
+                image_data = image_data.split(',')[1]
+            image_bytes = base64.b64decode(image_data)
+        else:
+            return jsonify({'error': 'No image data found in request'}), 400
+        
+        # Store the image as base64
+        latest_arduino_image = base64.b64encode(image_bytes).decode('utf-8')
+        latest_arduino_timestamp = time.time()
+        
+        print(f"Arduino image uploaded successfully ({len(image_bytes)} bytes)")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Image uploaded successfully',
+            'size': len(image_bytes)
+        })
+        
+    except Exception as e:
+        print(f"Error uploading Arduino image: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to upload image: {str(e)}'}), 500
+
 @app.route('/fetch-arduino-image', methods=['GET'])
 def fetch_arduino_image():
-    """Proxy endpoint to fetch images from Arduino camera via ngrok"""
+    """
+    Get the latest uploaded Arduino image
+    OR fetch from ngrok URL if no upload exists
+    """
+    global latest_arduino_image
+    
+    # If we have a recently uploaded image, use it
+    if latest_arduino_image:
+        print("Serving uploaded Arduino image")
+        return jsonify({
+            'success': True,
+            'image': f"data:image/jpeg;base64,{latest_arduino_image}"
+        })
+    
+    # Otherwise, try to fetch from ngrok URL
     try:
         arduino_url = 'https://mythoclastic-sustainingly-carolynn.ngrok-free.dev'
+        
+        print(f"Fetching from Arduino camera at {arduino_url}")
         
         # Fetch the image from Arduino camera
         response = requests.get(

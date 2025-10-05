@@ -1,0 +1,180 @@
+Arduino Code Example: Upload Image to ThirdEye Server
+========================================================
+
+Your Arduino should POST images to this URL:
+https://YOUR-REPLIT-URL.replit.dev/upload-arduino-image
+
+Replace YOUR-REPLIT-URL with your actual Replit URL.
+
+----------------------------------------------------------
+Example 1: Using HTTPClient (ESP32/ESP8266)
+----------------------------------------------------------
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// Your WiFi credentials
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// ThirdEye upload endpoint
+const char* uploadUrl = "https://YOUR-REPLIT-URL.replit.dev/upload-arduino-image";
+
+void uploadImage(uint8_t* imageData, size_t imageSize) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    // Start HTTP POST
+    http.begin(uploadUrl);
+    http.addHeader("Content-Type", "image/jpeg");
+    
+    // Send image as raw binary data
+    int httpResponseCode = http.POST(imageData, imageSize);
+    
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("Upload successful!");
+      Serial.println(response);
+    } else {
+      Serial.print("Error uploading: ");
+      Serial.println(httpResponseCode);
+    }
+    
+    http.end();
+  } else {
+    Serial.println("WiFi not connected");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
+}
+
+void loop() {
+  // Your existing camera capture code here
+  // After capturing image:
+  // uploadImage(imageBuffer, imageBufferSize);
+  
+  delay(5000); // Wait 5 seconds between uploads
+}
+
+----------------------------------------------------------
+Example 2: Using multipart/form-data
+----------------------------------------------------------
+
+void uploadImageAsFormData(uint8_t* imageData, size_t imageSize) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+    String header = "--" + boundary + "\r\n";
+    header += "Content-Disposition: form-data; name=\"image\"; filename=\"photo.jpg\"\r\n";
+    header += "Content-Type: image/jpeg\r\n\r\n";
+    String footer = "\r\n--" + boundary + "--\r\n";
+    
+    http.begin(uploadUrl);
+    http.addHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+    
+    // Calculate total size
+    int totalLen = header.length() + imageSize + footer.length();
+    http.addHeader("Content-Length", String(totalLen));
+    
+    // Create payload
+    uint8_t* payload = new uint8_t[totalLen];
+    memcpy(payload, header.c_str(), header.length());
+    memcpy(payload + header.length(), imageData, imageSize);
+    memcpy(payload + header.length() + imageSize, footer.c_str(), footer.length());
+    
+    int httpResponseCode = http.POST(payload, totalLen);
+    
+    delete[] payload;
+    
+    if (httpResponseCode > 0) {
+      Serial.println("Upload successful!");
+      Serial.println(http.getString());
+    } else {
+      Serial.print("Error: ");
+      Serial.println(httpResponseCode);
+    }
+    
+    http.end();
+  }
+}
+
+----------------------------------------------------------
+Example 3: Using base64 encoding (if needed)
+----------------------------------------------------------
+
+#include <base64.h>
+
+void uploadImageAsBase64(uint8_t* imageData, size_t imageSize) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    // Encode image to base64
+    String base64Image = base64::encode(imageData, imageSize);
+    
+    // Create JSON payload
+    String jsonPayload = "{\"image\":\"data:image/jpeg;base64,";
+    jsonPayload += base64Image;
+    jsonPayload += "\"}";
+    
+    http.begin(uploadUrl);
+    http.addHeader("Content-Type", "application/json");
+    
+    int httpResponseCode = http.POST(jsonPayload);
+    
+    if (httpResponseCode > 0) {
+      Serial.println("Upload successful!");
+      Serial.println(http.getString());
+    } else {
+      Serial.print("Error: ");
+      Serial.println(httpResponseCode);
+    }
+    
+    http.end();
+  }
+}
+
+----------------------------------------------------------
+NOTES:
+----------------------------------------------------------
+
+1. The server accepts images in THREE formats:
+   - Raw binary data (easiest - recommended)
+   - Multipart form-data with field name "image"
+   - JSON with base64 encoded image
+
+2. Recommended: Use Example 1 (raw binary) - it's the simplest
+
+3. The server stores the LATEST uploaded image in memory
+
+4. When you select "Arduino Camera" in ThirdEye and click Start,
+   it will use the most recently uploaded image
+
+5. Keep uploading images continuously from Arduino for real-time updates
+
+----------------------------------------------------------
+ALTERNATIVE: Fetch from your existing ngrok server
+----------------------------------------------------------
+
+If your Arduino already serves images on:
+https://mythoclastic-sustainingly-carolynn.ngrok-free.dev
+
+And you want to bypass the ngrok warning, you can:
+
+1. Make sure your Arduino server returns proper CORS headers:
+   Access-Control-Allow-Origin: *
+   
+2. OR configure ngrok to skip the warning page for your domain
+
+ThirdEye will automatically try to fetch from your ngrok URL
+if no uploaded image is available.
