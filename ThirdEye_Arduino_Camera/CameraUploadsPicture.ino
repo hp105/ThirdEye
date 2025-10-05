@@ -1,6 +1,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 #define CAMERA_MODEL_WROVER_KIT
 
@@ -54,23 +55,42 @@ void uploadImageToThirdEye() {
 
   // Upload to ThirdEye server
   if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
+    // Create secure WiFi client for HTTPS
+    WiFiClientSecure *client = new WiFiClientSecure;
     
-    http.begin(uploadUrl);
-    http.addHeader("Content-Type", "image/jpeg");
-    
-    // POST image as raw binary
-    int httpResponseCode = http.POST(fb->buf, fb->len);
-    
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.printf("✅ Upload successful! Response code: %d\n", httpResponseCode);
-      Serial.println(response);
+    if (client) {
+      // Skip SSL certificate verification (for easier connection)
+      client->setInsecure();
+      
+      HTTPClient http;
+      
+      // Use the secure client with HTTPClient
+      http.begin(*client, uploadUrl);
+      http.addHeader("Content-Type", "image/jpeg");
+      
+      // Increase timeout for large images
+      http.setTimeout(15000);
+      
+      // POST image as raw binary
+      int httpResponseCode = http.POST(fb->buf, fb->len);
+      
+      if (httpResponseCode > 0) {
+        String response = http.getString();
+        Serial.printf("✅ Upload successful! Response code: %d\n", httpResponseCode);
+        Serial.println(response);
+      } else {
+        Serial.printf("❌ Upload failed. Error code: %d\n", httpResponseCode);
+        Serial.println("Possible causes:");
+        Serial.println("- Check internet connection");
+        Serial.println("- Verify server URL is correct");
+        Serial.println("- Check if server is running");
+      }
+      
+      http.end();
+      delete client;
     } else {
-      Serial.printf("❌ Upload failed. Error code: %d\n", httpResponseCode);
+      Serial.println("Unable to create secure client");
     }
-    
-    http.end();
   } else {
     Serial.println("WiFi not connected");
   }
@@ -115,6 +135,8 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   Serial.println("\n📷 Camera ready! Starting continuous upload to ThirdEye...");
+  Serial.print("Upload URL: ");
+  Serial.println(uploadUrl);
 }
 
 void loop() {

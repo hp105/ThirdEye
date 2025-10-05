@@ -69,10 +69,17 @@ WiFi connection fails:
 - Double-check WiFi credentials
 - Ensure WiFi is 2.4GHz (ESP32 doesn't support 5GHz)
 
-Upload fails (Error -1):
-- Check server URL is correct
-- Verify internet connection
+Upload fails (Error -1) - FIXED:
+- Updated code now uses WiFiClientSecure for HTTPS
+- Bypasses SSL certificate verification with setInsecure()
+- If still failing: Check Serial Monitor output
+- Verify server URL: https://workspace-hupatel1052000.replit.dev/upload-arduino-image
 - Make sure ThirdEye server is running
+- Check internet connection on Arduino
+
+Image size too large:
+- Reduce jpeg_quality (line 41): try 12 or 15 instead of 10
+- Change frame_size (line 37): try FRAMESIZE_CIF instead of FRAMESIZE_QVGA
 
 ❓ SUPPORTED CAMERA MODELS:
 See camera_pins.h for pin configurations of:

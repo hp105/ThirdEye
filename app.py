@@ -51,11 +51,18 @@ def upload_arduino_image():
         elif request.data:
             image_bytes = request.data
         # Or check if it's base64 in JSON
-        elif request.json and 'image' in request.json:
-            image_data = request.json['image']
-            if image_data.startswith('data:image'):
-                image_data = image_data.split(',')[1]
-            image_bytes = base64.b64decode(image_data)
+        elif request.content_type == 'application/json':
+            try:
+                json_data = request.get_json()
+                if json_data and 'image' in json_data:
+                    image_data = json_data['image']
+                    if image_data.startswith('data:image'):
+                        image_data = image_data.split(',')[1]
+                    image_bytes = base64.b64decode(image_data)
+                else:
+                    return jsonify({'error': 'No image data found in JSON'}), 400
+            except Exception as e:
+                return jsonify({'error': f'Invalid JSON: {str(e)}'}), 400
         else:
             return jsonify({'error': 'No image data found in request'}), 400
         
