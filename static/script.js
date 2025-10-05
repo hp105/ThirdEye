@@ -21,7 +21,6 @@ let availableVoices = [];
 let currentAudio = null;
 let currentMode = 'live';
 let currentCameraSource = 'device';
-const ARDUINO_CAMERA_URL = 'https://mythoclastic-sustainingly-carolynn.ngrok-free.dev';
 
 // Load available voices
 function loadVoices() {
@@ -78,7 +77,7 @@ function updateCameraSourceDescription() {
         sourceDescription.textContent = "Using your device's built-in camera";
     } else {
         currentCameraSource = 'arduino';
-        sourceDescription.textContent = 'Using Arduino camera stream from ngrok';
+        sourceDescription.textContent = 'Using Arduino camera (upload mode)';
     }
     console.log('Camera source changed to:', currentCameraSource);
 }
@@ -129,7 +128,7 @@ async function startCamera() {
         } else {
             // Arduino camera - no device camera needed
             updateStatus('', 'Connecting to Arduino camera...');
-            console.log('Using Arduino camera from:', ARDUINO_CAMERA_URL);
+            console.log('Using Arduino camera (upload mode)');
         }
         
         startBtn.disabled = true;
@@ -217,7 +216,7 @@ async function captureAndAnalyze() {
         
         // Get image from the selected camera source
         if (currentCameraSource === 'arduino') {
-            // Fetch from Arduino camera via ngrok
+            // Fetch from Arduino camera (upload mode)
             imageData = await fetchArduinoImage();
         } else {
             // Capture from device camera

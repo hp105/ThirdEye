@@ -9,8 +9,8 @@
 const char *ssid_Router = "OnePlus10pro";
 const char *password_Router = "Th!rdEye$#";
 
-// ThirdEye server upload URL - REPLACE WITH YOUR REPLIT URL
-const char *uploadUrl = "https://YOUR-REPLIT-URL.replit.dev/upload-arduino-image";
+// ThirdEye server upload URL
+const char *uploadUrl = "https://workspace-hupatel1052000.replit.dev/upload-arduino-image";
 
 camera_config_t config;
 
