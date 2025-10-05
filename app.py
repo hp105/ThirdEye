@@ -89,13 +89,14 @@ def fetch_arduino_image():
     """
     Get the latest uploaded Arduino image
     """
-    global latest_arduino_image
+    global latest_arduino_image, latest_arduino_timestamp
     
     if latest_arduino_image:
         print("Serving uploaded Arduino image")
         return jsonify({
             'success': True,
-            'image': f"data:image/jpeg;base64,{latest_arduino_image}"
+            'image': f"data:image/jpeg;base64,{latest_arduino_image}",
+            'timestamp': latest_arduino_timestamp
         })
     else:
         return jsonify({'error': 'No Arduino image available. Arduino must upload an image first.'}), 404

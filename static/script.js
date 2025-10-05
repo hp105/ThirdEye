@@ -1,5 +1,6 @@
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
+const arduinoPreview = document.getElementById('arduinoPreview');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusDot = document.getElementById('statusDot');
@@ -21,6 +22,7 @@ let availableVoices = [];
 let currentAudio = null;
 let currentMode = 'live';
 let currentCameraSource = 'device';
+let lastArduinoTimestamp = null;
 
 // Load available voices
 function loadVoices() {
@@ -103,6 +105,10 @@ async function startCamera() {
         if (currentCameraSource === 'device') {
             updateStatus('', 'Requesting camera access...');
             
+            // Show video, hide Arduino preview
+            video.style.display = 'block';
+            arduinoPreview.style.display = 'none';
+            
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'environment' },
@@ -129,6 +135,13 @@ async function startCamera() {
             // Arduino camera - no device camera needed
             updateStatus('', 'Connecting to Arduino camera...');
             console.log('Using Arduino camera (upload mode)');
+            
+            // Show Arduino preview, hide video
+            video.style.display = 'none';
+            arduinoPreview.style.display = 'block';
+            
+            // Reset timestamp to force initial analysis
+            lastArduinoTimestamp = null;
         }
         
         startBtn.disabled = true;
@@ -159,6 +172,10 @@ function stopCamera() {
     
     video.srcObject = null;
     
+    // Hide both previews
+    video.style.display = 'none';
+    arduinoPreview.style.display = 'none';
+    
     startBtn.disabled = false;
     stopBtn.disabled = true;
     
@@ -185,11 +202,17 @@ async function fetchArduinoImage() {
         }
         
         if (!data.success || !data.image) {
-            throw new Error('Invalid response from Arduino camera proxy');
+            throw new Error('Invalid response from Arduino camera');
         }
         
-        console.log('Successfully fetched Arduino camera image via proxy');
-        return data.image;
+        console.log('Successfully fetched Arduino camera image');
+        
+        // Update preview
+        if (arduinoPreview) {
+            arduinoPreview.src = data.image;
+        }
+        
+        return { image: data.image, timestamp: data.timestamp };
     } catch (error) {
         console.error('Error fetching Arduino camera image:', error);
         throw error;
@@ -217,7 +240,26 @@ async function captureAndAnalyze() {
         // Get image from the selected camera source
         if (currentCameraSource === 'arduino') {
             // Fetch from Arduino camera (upload mode)
-            imageData = await fetchArduinoImage();
+            const result = await fetchArduinoImage();
+            
+            // Check if this is a new image
+            if (result.timestamp === lastArduinoTimestamp) {
+                // Same image, wait and check again
+                isProcessing = false;
+                if (isCapturing) {
+                    setTimeout(() => {
+                        if (isCapturing) {
+                            captureAndAnalyze();
+                        }
+                    }, 500); // Check for new image every 500ms
+                }
+                return;
+            }
+            
+            // New image detected!
+            console.log('New Arduino image detected! Analyzing immediately...');
+            lastArduinoTimestamp = result.timestamp;
+            imageData = result.image;
         } else {
             // Capture from device camera
             canvas.width = video.videoWidth;
@@ -272,7 +314,17 @@ async function captureAndAnalyze() {
         // Success - immediately start next capture for true real-time continuous operation
         isProcessing = false;
         if (isCapturing) {
-            captureAndAnalyze();
+            if (currentCameraSource === 'arduino') {
+                // For Arduino, check for new images every 500ms
+                setTimeout(() => {
+                    if (isCapturing) {
+                        captureAndAnalyze();
+                    }
+                }, 500);
+            } else {
+                // For device camera, capture continuously
+                captureAndAnalyze();
+            }
         }
         
     } catch (error) {
@@ -283,12 +335,13 @@ async function captureAndAnalyze() {
         // Wait before retrying on error to avoid flooding the server
         isProcessing = false;
         if (isCapturing) {
+            const retryDelay = currentCameraSource === 'arduino' ? 1000 : 3000;
             setTimeout(() => {
                 if (isCapturing) {
                     updateStatus('active', 'Camera active - Continuous real-time capture');
                     captureAndAnalyze();
                 }
-            }, 3000);
+            }, retryDelay);
         }
     }
 }

@@ -24,6 +24,8 @@ Preferred communication style: Simple, everyday language.
    - No ngrok or external server required
    - Works across different networks (Arduino and host device can be on separate WiFi networks)
    - Enables remote camera capture for specialized setups
+   - **Real-time Auto-Detection**: Frontend automatically detects new Arduino uploads (checks every 500ms) and analyzes immediately
+   - **Live Preview**: Shows the captured Arduino images being analyzed in real-time
 
 **Capture Strategy**: Implements continuous real-time image capture with intelligent throttling:
 - Captures and analyzes as fast as possible (typically 3-10 seconds per cycle depending on API response time)
