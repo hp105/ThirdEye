@@ -178,17 +178,18 @@ async function fetchArduinoImage() {
             method: 'GET'
         });
         
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Failed to fetch Arduino image: ${response.status}`);
-        }
-        
+        // Parse JSON once and reuse
         const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || `Failed to fetch Arduino image: ${response.status}`);
+        }
         
         if (!data.success || !data.image) {
             throw new Error('Invalid response from Arduino camera proxy');
         }
         
+        console.log('Successfully fetched Arduino camera image via proxy');
         return data.image;
     } catch (error) {
         console.error('Error fetching Arduino camera image:', error);
