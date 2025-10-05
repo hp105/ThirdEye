@@ -187,14 +187,10 @@ async function captureAndAnalyze() {
             throw new Error(data.error);
         }
         
-        // Success - schedule next capture with minimal delay
+        // Success - immediately start next capture for true real-time continuous operation
         isProcessing = false;
         if (isCapturing) {
-            setTimeout(() => {
-                if (isCapturing) {
-                    captureAndAnalyze();
-                }
-            }, 100);
+            captureAndAnalyze();
         }
         
     } catch (error) {

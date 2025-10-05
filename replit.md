@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 
 **Capture Strategy**: Implements continuous real-time image capture with intelligent throttling:
 - Captures and analyzes as fast as possible (typically 3-10 seconds per cycle depending on API response time)
-- 100ms delay between successful captures to prevent browser/server overload
+- No artificial delays between captures - next capture starts immediately after previous completes
 - 3-second backoff on errors to prevent flooding during failures
 - Provides true real-time descriptions of the user's surroundings
 
@@ -74,7 +74,7 @@ Preferred communication style: Simple, everyday language.
 6. Gemini returns text description in the requested language
 7. Backend sends text to ElevenLabs API to generate MP3 audio
 8. Frontend receives audio and plays it at the selected speed (adjustable in real-time)
-9. After 100ms delay, cycle immediately repeats while camera is active (continuous loop)
+9. Cycle immediately repeats as soon as previous description completes (continuous loop with no artificial delays)
 10. On errors, waits 3 seconds before retrying to prevent server flooding
 
 ### Error Handling
