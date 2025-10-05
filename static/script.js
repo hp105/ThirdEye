@@ -147,7 +147,7 @@ async function captureAndAnalyze() {
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        const imageData = canvas.toDataURL('image/jpeg', 0.5);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
         const selectedLanguage = languageSelect.value;
         
         const response = await fetch('/analyze', {
@@ -173,14 +173,6 @@ async function captureAndAnalyze() {
             console.log('Text:', data.text);
             console.log('Language:', data.language);
             updateStatus('active', 'Playing audio description...');
-            
-            // Start next capture immediately (don't wait for audio to finish)
-            isProcessing = false;
-            if (isCapturing) {
-                captureAndAnalyze();
-            }
-            
-            // Play audio asynchronously
             await playAudio(data.audio);
             updateStatus('active', 'Camera active - Continuous real-time capture');
         } else if (data.text) {
@@ -189,18 +181,20 @@ async function captureAndAnalyze() {
             console.log('Text:', data.text);
             console.log('Language:', data.language);
             updateStatus('active', 'Speaking description...');
-            
-            // Start next capture immediately
-            isProcessing = false;
-            if (isCapturing) {
-                captureAndAnalyze();
-            }
-            
-            // Speak text asynchronously
             await speakText(data.text, data.language);
             updateStatus('active', 'Camera active - Continuous real-time capture');
         } else if (data.error) {
             throw new Error(data.error);
+        }
+        
+        // Success - schedule next capture with minimal delay
+        isProcessing = false;
+        if (isCapturing) {
+            setTimeout(() => {
+                if (isCapturing) {
+                    captureAndAnalyze();
+                }
+            }, 100);
         }
         
     } catch (error) {
