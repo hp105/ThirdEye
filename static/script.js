@@ -184,9 +184,12 @@ function speakText(text, languageCode) {
         }
         
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = parseFloat(speedSlider.value);
+        const currentSpeed = parseFloat(speedSlider.value);
+        utterance.rate = currentSpeed;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
+        
+        console.log('Speech settings - Speed:', currentSpeed, 'Language:', languageCode);
         
         // Set the language for the utterance
         if (languageCode) {
@@ -204,20 +207,29 @@ function speakText(text, languageCode) {
                 utterance.voice = matchingVoice;
                 console.log('Selected voice:', matchingVoice.name, 'for language:', languageCode);
             } else {
-                console.log('No matching voice found for', languageCode, '- using default. Available voices:', availableVoices.map(v => v.lang).join(', '));
+                // Don't set a voice if no match - let browser handle it
+                // Setting an English voice for non-English text can prevent speech
+                console.log('No matching voice found for', languageCode, '- letting browser choose default');
+                console.log('Available voices:', availableVoices.map(v => `${v.name} (${v.lang})`).join(', '));
             }
         }
         
+        utterance.onstart = () => {
+            console.log('Speech started at rate:', utterance.rate);
+        };
+        
         utterance.onend = () => {
+            console.log('Speech ended successfully');
             resolve();
         };
         
         utterance.onerror = (event) => {
             const errorMsg = event.error || 'Speech synthesis error';
-            console.warn('Speech error:', errorMsg, '- continuing anyway');
+            console.error('Speech error:', errorMsg, 'Error object:', event);
             resolve();
         };
         
+        console.log('Starting speech synthesis...');
         window.speechSynthesis.speak(utterance);
     });
 }
