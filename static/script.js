@@ -171,27 +171,25 @@ function stopCamera() {
     updateStatus('', 'Ready to start');
 }
 
-// Fetch image from Arduino camera
+// Fetch image from Arduino camera via backend proxy
 async function fetchArduinoImage() {
     try {
-        const response = await fetch(ARDUINO_CAMERA_URL, {
-            method: 'GET',
-            headers: {
-                'ngrok-skip-browser-warning': 'true'
-            }
+        const response = await fetch('/fetch-arduino-image', {
+            method: 'GET'
         });
         
         if (!response.ok) {
-            throw new Error(`Failed to fetch Arduino image: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to fetch Arduino image: ${response.status}`);
         }
         
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
+        const data = await response.json();
+        
+        if (!data.success || !data.image) {
+            throw new Error('Invalid response from Arduino camera proxy');
+        }
+        
+        return data.image;
     } catch (error) {
         console.error('Error fetching Arduino camera image:', error);
         throw error;
