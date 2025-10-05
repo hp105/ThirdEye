@@ -56,7 +56,15 @@ def analyze_image():
         image_bytes = base64.b64decode(image_data)
         
         language_name = LANGUAGE_NAMES.get(language_code, 'English')
-        prompt = f"Describe this image concisely, in a single sentence, for a screen reader or visually impaired user. Respond in {language_name}."
+        
+        # Make the language requirement very explicit
+        if language_code == 'en':
+            prompt = "Describe this image concisely, in a single sentence, for a screen reader or visually impaired user."
+        else:
+            prompt = f"You must respond ONLY in {language_name}. Describe this image concisely, in a single sentence, for a screen reader or visually impaired user. Your entire response must be in {language_name}, not English."
+        
+        print(f"Language requested: {language_name} ({language_code})")
+        print(f"Prompt: {prompt}")
         
         response = client.models.generate_content(
             model="gemini-2.5-flash",
@@ -70,8 +78,10 @@ def analyze_image():
         )
         
         if response.text:
+            print(f"Gemini response: {response.text}")
             return jsonify({
-                'text': response.text
+                'text': response.text,
+                'language': language_code
             })
         
         return jsonify({'error': 'No text response generated'}), 500

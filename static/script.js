@@ -11,6 +11,29 @@ const speedValue = document.getElementById('speedValue');
 let stream = null;
 let captureInterval = null;
 let isProcessing = false;
+let availableVoices = [];
+
+// Load available voices
+function loadVoices() {
+    return new Promise((resolve) => {
+        availableVoices = window.speechSynthesis.getVoices();
+        if (availableVoices.length > 0) {
+            console.log('Voices loaded:', availableVoices.length);
+            resolve();
+        } else {
+            window.speechSynthesis.onvoiceschanged = () => {
+                availableVoices = window.speechSynthesis.getVoices();
+                console.log('Voices loaded:', availableVoices.length);
+                resolve();
+            };
+        }
+    });
+}
+
+// Load voices on page load
+if ('speechSynthesis' in window) {
+    loadVoices();
+}
 
 speedSlider.addEventListener('input', (e) => {
     speedValue.textContent = e.target.value + 'x';
@@ -126,8 +149,10 @@ async function captureAndAnalyze() {
         const data = await response.json();
         
         if (data.text) {
+            console.log('Received text:', data.text);
+            console.log('Language:', data.language);
             updateStatus('active', 'Speaking description...');
-            await speakText(data.text);
+            await speakText(data.text, data.language);
             updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
         } else if (data.error) {
             throw new Error(data.error);
@@ -146,7 +171,7 @@ async function captureAndAnalyze() {
     }
 }
 
-function speakText(text) {
+function speakText(text, languageCode) {
     return new Promise((resolve, reject) => {
         if (!('speechSynthesis' in window)) {
             console.warn('Text-to-speech not supported, skipping audio');
@@ -162,6 +187,26 @@ function speakText(text) {
         utterance.rate = parseFloat(speedSlider.value);
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
+        
+        // Set the language for the utterance
+        if (languageCode) {
+            utterance.lang = languageCode;
+            
+            // Make sure voices are loaded
+            if (availableVoices.length === 0) {
+                availableVoices = window.speechSynthesis.getVoices();
+            }
+            
+            // Try to find a voice that matches the language
+            const matchingVoice = availableVoices.find(voice => voice.lang.startsWith(languageCode));
+            
+            if (matchingVoice) {
+                utterance.voice = matchingVoice;
+                console.log('Selected voice:', matchingVoice.name, 'for language:', languageCode);
+            } else {
+                console.log('No matching voice found for', languageCode, '- using default. Available voices:', availableVoices.map(v => v.lang).join(', '));
+            }
+        }
         
         utterance.onend = () => {
             resolve();
