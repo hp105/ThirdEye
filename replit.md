@@ -19,9 +19,10 @@ Preferred communication style: Simple, everyday language.
    - Falls back to front-facing camera if unavailable
    - Finally attempts default camera as last resort
    - This progressive degradation ensures maximum device compatibility
-2. **Arduino Camera**: Fetches images from an external Arduino camera via ngrok URL:
-   - Fetches images from `https://mythoclastic-sustainingly-carolynn.ngrok-free.dev`
-   - No device camera access required
+2. **Arduino Camera**: Receives images uploaded from external Arduino ESP32 camera:
+   - Arduino captures images and POSTs directly to ThirdEye server via `/upload-arduino-image` endpoint
+   - No ngrok or external server required
+   - Works across different networks (Arduino and host device can be on separate WiFi networks)
    - Enables remote camera capture for specialized setups
 
 **Capture Strategy**: Implements continuous real-time image capture with intelligent throttling:

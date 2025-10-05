@@ -81,57 +81,17 @@ def upload_arduino_image():
 def fetch_arduino_image():
     """
     Get the latest uploaded Arduino image
-    OR fetch from ngrok URL if no upload exists
     """
     global latest_arduino_image
     
-    # If we have a recently uploaded image, use it
     if latest_arduino_image:
         print("Serving uploaded Arduino image")
         return jsonify({
             'success': True,
             'image': f"data:image/jpeg;base64,{latest_arduino_image}"
         })
-    
-    # Otherwise, try to fetch from ngrok URL
-    try:
-        arduino_url = 'https://mythoclastic-sustainingly-carolynn.ngrok-free.dev'
-        
-        print(f"Fetching from Arduino camera at {arduino_url}")
-        
-        # Fetch the image from Arduino camera
-        response = requests.get(
-            arduino_url,
-            headers={'ngrok-skip-browser-warning': 'true'},
-            timeout=10
-        )
-        
-        if response.status_code != 200:
-            return jsonify({'error': f'Arduino camera returned status {response.status_code}'}), 502
-        
-        # Convert image bytes to base64
-        image_base64 = base64.b64encode(response.content).decode('utf-8')
-        
-        # Determine content type
-        content_type = response.headers.get('Content-Type', 'image/jpeg')
-        
-        # Return as data URL
-        data_url = f"data:{content_type};base64,{image_base64}"
-        
-        return jsonify({
-            'success': True,
-            'image': data_url
-        })
-        
-    except requests.exceptions.Timeout:
-        return jsonify({'error': 'Arduino camera request timed out'}), 504
-    except requests.exceptions.ConnectionError:
-        return jsonify({'error': 'Could not connect to Arduino camera'}), 502
-    except Exception as e:
-        print(f"Error fetching Arduino image: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to fetch Arduino image: {str(e)}'}), 500
+    else:
+        return jsonify({'error': 'No Arduino image available. Arduino must upload an image first.'}), 404
 
 LANGUAGE_NAMES = {
     'en': 'English',

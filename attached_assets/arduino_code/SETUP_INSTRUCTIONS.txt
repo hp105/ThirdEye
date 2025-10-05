@@ -1,0 +1,38 @@
+🔧 Arduino Camera Setup for ThirdEye
+=====================================
+
+📋 STEPS TO CONFIGURE YOUR ARDUINO:
+
+1. Open the file: CameraUploadsPicture.ino
+
+2. Replace this line (line 12):
+   const char *uploadUrl = "https://YOUR-REPLIT-URL.replit.dev/upload-arduino-image";
+   
+   WITH your actual Replit URL:
+   const char *uploadUrl = "https://workspace-hupatel1052000.replit.dev/upload-arduino-image";
+
+3. Update WiFi credentials if needed (lines 10-11):
+   const char *ssid_Router = "OnePlus10pro";
+   const char *password_Router = "Th!rdEye$#";
+
+4. Upload the code to your Arduino ESP32
+
+5. Open Serial Monitor (115200 baud) to see status messages
+
+📡 HOW IT WORKS:
+
+✅ Arduino connects to WiFi
+✅ Captures image every 3 seconds
+✅ POSTs image directly to ThirdEye server
+✅ No ngrok needed!
+✅ Arduino and ThirdEye can be on different networks
+
+🎯 TO USE:
+
+1. Power on Arduino (it will start uploading images automatically)
+2. Open ThirdEye in your browser
+3. Select "Arduino Camera" from the camera source toggle
+4. Click "Start"
+5. ThirdEye will use the latest uploaded image from Arduino!
+
+✨ The Arduino continuously uploads images, so ThirdEye always has fresh images to analyze.
