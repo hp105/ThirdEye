@@ -19,21 +19,24 @@ Preferred communication style: Simple, everyday language.
 - Finally attempts default camera as last resort
 - This progressive degradation ensures maximum device compatibility
 
-**Capture Strategy**: Implements continuous real-time image capture with intelligent throttling:
-- Captures and analyzes as fast as possible (typically 3-10 seconds per cycle depending on API response time)
-- 100ms delay between successful captures to prevent browser/server overload
+**Capture Strategy**: Implements continuous real-time image capture optimized for minimal lag:
+- Captures overlap with audio playback for maximum speed (typically 3-7 seconds per cycle)
+- Next capture starts immediately when API response received (no artificial delays)
+- Reduced JPEG quality (0.5) for 40-50% smaller payload and faster transfer
 - 3-second backoff on errors to prevent flooding during failures
-- Provides true real-time descriptions of the user's surroundings
+- Provides near real-time descriptions with minimal lag
 
-**User Interface**: Modern, accessible design with:
-- ThirdEye branding with eye icon and animated effects
-- Live video preview for sighted companions
-- Clear status indicators (visual dots with color states: active/processing/error)
+**User Interface**: Modern glass morphism design with enhanced interactivity:
+- Frosted glass container with backdrop blur and animated gradient background
+- ThirdEye branding with glowing animated eye icon
+- Live video preview with hover lift effect
+- Clear status indicators with pulsing glow effects (active/processing/error)
 - Language selection dropdown with 20 languages (switchable during operation)
-- Voice speed slider (0.5x - 2.5x) with real-time adjustment during playback
-- Large, accessible control buttons with icons
-- Gradient background (indigo to purple to pink) for visual appeal
-- Smooth animations and transitions
+- Voice speed slider (0.5x - 2.5x) with real-time adjustment and glow effects
+- Interactive control buttons with gradient shimmer animations
+- Purple/pink gradient theme for modern aesthetic
+- Smooth cubic-bezier transitions throughout
+- Full accessibility support (keyboard navigation, reduced motion, high contrast)
 - Fully responsive design for mobile and desktop
 
 **Dynamic Features**:
@@ -68,14 +71,15 @@ Preferred communication style: Simple, everyday language.
 ### Data Flow
 1. User selects preferred language and voice speed (changeable anytime during operation)
 2. Frontend captures video frame to canvas element (hidden) continuously
-3. Canvas converts frame to base64-encoded JPEG
+3. Canvas converts frame to base64-encoded JPEG (quality: 0.5 for minimal transfer time)
 4. Image data and language code sent to `/analyze` endpoint via fetch API
 5. Backend decodes image and sends to Gemini API with language-specific prompt
 6. Gemini returns text description in the requested language
 7. Backend sends text to ElevenLabs API to generate MP3 audio
-8. Frontend receives audio and plays it at the selected speed (adjustable in real-time)
-9. After 100ms delay, cycle immediately repeats while camera is active (continuous loop)
-10. On errors, waits 3 seconds before retrying to prevent server flooding
+8. Frontend receives audio and immediately starts next capture (parallel processing)
+9. Audio plays at the selected speed (adjustable in real-time) while next frame is being analyzed
+10. Cycle repeats continuously with minimal lag (no artificial delays)
+11. On errors, waits 3 seconds before retrying to prevent server flooding
 
 ### Error Handling
 - Frontend includes try-catch blocks for camera access with multiple fallback attempts
