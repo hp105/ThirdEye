@@ -1,5 +1,6 @@
 import os
 import base64
+import requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from google import genai
@@ -27,6 +28,46 @@ except Exception as e:
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
+
+@app.route('/fetch-arduino-image', methods=['GET'])
+def fetch_arduino_image():
+    """Proxy endpoint to fetch images from Arduino camera via ngrok"""
+    try:
+        arduino_url = 'https://mythoclastic-sustainingly-carolynn.ngrok-free.dev'
+        
+        # Fetch the image from Arduino camera
+        response = requests.get(
+            arduino_url,
+            headers={'ngrok-skip-browser-warning': 'true'},
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'Arduino camera returned status {response.status_code}'}), 502
+        
+        # Convert image bytes to base64
+        image_base64 = base64.b64encode(response.content).decode('utf-8')
+        
+        # Determine content type
+        content_type = response.headers.get('Content-Type', 'image/jpeg')
+        
+        # Return as data URL
+        data_url = f"data:{content_type};base64,{image_base64}"
+        
+        return jsonify({
+            'success': True,
+            'image': data_url
+        })
+        
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Arduino camera request timed out'}), 504
+    except requests.exceptions.ConnectionError:
+        return jsonify({'error': 'Could not connect to Arduino camera'}), 502
+    except Exception as e:
+        print(f"Error fetching Arduino image: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to fetch Arduino image: {str(e)}'}), 500
 
 LANGUAGE_NAMES = {
     'en': 'English',
