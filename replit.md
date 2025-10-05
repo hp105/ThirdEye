@@ -13,11 +13,16 @@ Preferred communication style: Simple, everyday language.
 ### Frontend Architecture
 **Single-Page Application (SPA)**: The application uses a simple, vanilla JavaScript approach without frameworks to minimize complexity and ensure fast load times for accessibility purposes.
 
-**Camera Integration**: Uses the WebRTC Media Capture API (`navigator.mediaDevices.getUserMedia`) with intelligent fallback logic:
-- First attempts to access rear-facing camera (environment mode) for better scene capture
-- Falls back to front-facing camera if unavailable
-- Finally attempts default camera as last resort
-- This progressive degradation ensures maximum device compatibility
+**Camera Integration**: Supports two camera sources with intelligent handling:
+1. **Device Camera**: Uses the WebRTC Media Capture API (`navigator.mediaDevices.getUserMedia`) with intelligent fallback logic:
+   - First attempts to access rear-facing camera (environment mode) for better scene capture
+   - Falls back to front-facing camera if unavailable
+   - Finally attempts default camera as last resort
+   - This progressive degradation ensures maximum device compatibility
+2. **Arduino Camera**: Fetches images from an external Arduino camera via ngrok URL:
+   - Fetches images from `https://mythoclastic-sustainingly-carolynn.ngrok-free.dev`
+   - No device camera access required
+   - Enables remote camera capture for specialized setups
 
 **Capture Strategy**: Implements continuous real-time image capture with intelligent throttling:
 - Captures and analyzes as fast as possible (typically 3-10 seconds per cycle depending on API response time)
@@ -27,7 +32,9 @@ Preferred communication style: Simple, everyday language.
 
 **User Interface**: Modern, accessible design with:
 - ThirdEye branding with eye icon and animated effects
-- Live video preview for sighted companions
+- **Mode Toggle**: Interactive switch between Live Capture (detailed descriptions) and Navigation (short obstacle-focused descriptions) with animated purple gradient slider
+- **Camera Source Selector**: Toggle between Device Camera and Arduino Camera with animated green gradient slider
+- Live video preview for sighted companions (when using device camera)
 - Clear status indicators (visual dots with color states: active/processing/error)
 - Language selection dropdown with 20 languages (switchable during operation)
 - Voice speed slider (0.5x - 2.5x) with real-time adjustment during playback
@@ -67,11 +74,13 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Flow
 1. User selects preferred language and voice speed (changeable anytime during operation)
-2. Frontend captures video frame to canvas element (hidden) continuously
-3. Canvas converts frame to base64-encoded JPEG
-4. Image data and language code sent to `/analyze` endpoint via fetch API
-5. Backend decodes image and sends to Gemini API with language-specific prompt
-6. Gemini returns text description in the requested language
+2. User selects camera source (Device Camera or Arduino Camera)
+3. Frontend captures image based on selected source:
+   - **Device Camera**: Captures video frame to canvas element (hidden) and converts to base64-encoded JPEG
+   - **Arduino Camera**: Fetches image directly from ngrok URL and converts to base64-encoded JPEG
+4. Image data, language code, and mode sent to `/analyze` endpoint via fetch API
+5. Backend decodes image and sends to Gemini API with mode-specific and language-specific prompt
+6. Gemini returns text description in the requested language (detailed for Live mode, short for Navigation mode)
 7. Backend sends text to ElevenLabs API to generate MP3 audio
 8. Frontend receives audio and plays it at the selected speed (adjustable in real-time)
 9. Cycle immediately repeats as soon as previous description completes (continuous loop with no artificial delays)
