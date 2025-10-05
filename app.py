@@ -12,10 +12,22 @@ CORS(app)
 gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # Initialize Google Cloud TTS client
-# It will use GOOGLE_APPLICATION_CREDENTIALS env var if set, or the API key
 try:
-    tts_client = texttospeech.TextToSpeechClient()
-    print("Google Cloud TTS client initialized successfully")
+    # Check if we have an API key
+    api_key = os.environ.get("GOOGLE_CLOUD_API_KEY")
+    if api_key:
+        # Use API key for authentication
+        from google.cloud import texttospeech_v1
+        from google.api_core import client_options as client_options_lib
+        
+        # Create client with API key
+        client_opts = client_options_lib.ClientOptions(api_key=api_key)
+        tts_client = texttospeech_v1.TextToSpeechClient(client_options=client_opts)
+        print("Google Cloud TTS client initialized successfully with API key")
+    else:
+        # Fall back to default credentials (service account, etc.)
+        tts_client = texttospeech.TextToSpeechClient()
+        print("Google Cloud TTS client initialized successfully with default credentials")
 except Exception as e:
     print(f"Warning: Could not initialize Google Cloud TTS client: {e}")
     print("Make sure you have set up Google Cloud credentials")
@@ -46,6 +58,30 @@ LANGUAGE_NAMES = {
     'th': 'Thai',
     'id': 'Indonesian',
     'uk': 'Ukrainian'
+}
+
+# Map language codes to Google Cloud TTS language codes (BCP-47)
+LANGUAGE_CODE_MAP = {
+    'en': 'en-US',
+    'es': 'es-ES',
+    'fr': 'fr-FR',
+    'de': 'de-DE',
+    'it': 'it-IT',
+    'pt': 'pt-BR',
+    'ru': 'ru-RU',
+    'ja': 'ja-JP',
+    'ko': 'ko-KR',
+    'zh': 'zh-CN',
+    'ar': 'ar-XA',
+    'hi': 'hi-IN',
+    'bn': 'bn-IN',
+    'nl': 'nl-NL',
+    'pl': 'pl-PL',
+    'tr': 'tr-TR',
+    'vi': 'vi-VN',
+    'th': 'th-TH',
+    'id': 'id-ID',
+    'uk': 'uk-UA'
 }
 
 @app.route('/analyze', methods=['POST'])
@@ -103,39 +139,53 @@ def analyze_image():
                 'language': language_code
             })
         
-        # Configure TTS request
-        synthesis_input = texttospeech.SynthesisInput(text=description_text)
-        
-        # Select voice based on language
-        voice = texttospeech.VoiceSelectionParams(
-            language_code=language_code,
-            ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
-        )
-        
-        # Configure audio output (MP3 format)
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
-        )
-        
-        print(f"Generating audio for language: {language_code}")
-        
-        # Generate speech
-        tts_response = tts_client.synthesize_speech(
-            input=synthesis_input,
-            voice=voice,
-            audio_config=audio_config
-        )
-        
-        # Convert audio to base64 for transmission
-        audio_base64 = base64.b64encode(tts_response.audio_content).decode('utf-8')
-        
-        print(f"Audio generated successfully ({len(tts_response.audio_content)} bytes)")
-        
-        return jsonify({
-            'audio': audio_base64,
-            'text': description_text,
-            'language': language_code
-        })
+        # Try to generate audio, but fallback to text if it fails
+        try:
+            # Get the proper BCP-47 language code for Google TTS
+            tts_language_code = LANGUAGE_CODE_MAP.get(language_code, 'en-US')
+            
+            # Configure TTS request
+            synthesis_input = texttospeech.SynthesisInput(text=description_text)
+            
+            # Select voice based on language
+            voice = texttospeech.VoiceSelectionParams(
+                language_code=tts_language_code,
+                ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+            )
+            
+            # Configure audio output (MP3 format)
+            audio_config = texttospeech.AudioConfig(
+                audio_encoding=texttospeech.AudioEncoding.MP3
+            )
+            
+            print(f"Generating audio for language: {tts_language_code}")
+            
+            # Generate speech
+            tts_response = tts_client.synthesize_speech(
+                input=synthesis_input,
+                voice=voice,
+                audio_config=audio_config
+            )
+            
+            # Convert audio to base64 for transmission
+            audio_base64 = base64.b64encode(tts_response.audio_content).decode('utf-8')
+            
+            print(f"Audio generated successfully ({len(tts_response.audio_content)} bytes)")
+            
+            return jsonify({
+                'audio': audio_base64,
+                'text': description_text,
+                'language': language_code
+            })
+            
+        except Exception as tts_error:
+            # If TTS fails, fallback to returning text for browser TTS
+            print(f"Warning: TTS generation failed: {tts_error}")
+            print("Falling back to browser TTS")
+            return jsonify({
+                'text': description_text,
+                'language': language_code
+            })
         
     except Exception as e:
         print(f"Error: {str(e)}")
