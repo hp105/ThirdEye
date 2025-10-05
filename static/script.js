@@ -148,8 +148,18 @@ async function captureAndAnalyze() {
         
         const data = await response.json();
         
-        if (data.text) {
-            console.log('Received text:', data.text);
+        if (data.audio) {
+            // We received audio from Google Cloud TTS
+            console.log('Received audio data from Google TTS');
+            console.log('Text:', data.text);
+            console.log('Language:', data.language);
+            updateStatus('active', 'Playing audio description...');
+            await playAudio(data.audio);
+            updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
+        } else if (data.text) {
+            // Fallback: use browser TTS if no audio
+            console.log('Received text (no audio), using browser TTS');
+            console.log('Text:', data.text);
             console.log('Language:', data.language);
             updateStatus('active', 'Speaking description...');
             await speakText(data.text, data.language);
@@ -169,6 +179,53 @@ async function captureAndAnalyze() {
     } finally {
         isProcessing = false;
     }
+}
+
+function playAudio(base64Audio) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Convert base64 to blob
+            const binaryString = atob(base64Audio);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/mp3' });
+            const audioUrl = URL.createObjectURL(blob);
+            
+            // Create audio element
+            const audio = new Audio(audioUrl);
+            
+            // Set playback speed from slider
+            const currentSpeed = parseFloat(speedSlider.value);
+            audio.playbackRate = currentSpeed;
+            
+            console.log('Playing audio at speed:', currentSpeed);
+            
+            // Play audio
+            audio.onended = () => {
+                console.log('Audio playback completed');
+                URL.revokeObjectURL(audioUrl);
+                resolve();
+            };
+            
+            audio.onerror = (error) => {
+                console.error('Audio playback error:', error);
+                URL.revokeObjectURL(audioUrl);
+                reject(error);
+            };
+            
+            audio.play().catch(error => {
+                console.error('Failed to play audio:', error);
+                URL.revokeObjectURL(audioUrl);
+                reject(error);
+            });
+            
+        } catch (error) {
+            console.error('Error creating audio:', error);
+            reject(error);
+        }
+    });
 }
 
 function speakText(text, languageCode) {
