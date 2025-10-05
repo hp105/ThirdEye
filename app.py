@@ -4,34 +4,25 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from google import genai
 from google.genai import types
-from google.cloud import texttospeech
+from elevenlabs.client import ElevenLabs
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# Initialize Google Cloud TTS client
+# Initialize ElevenLabs TTS client
 try:
-    # Check if we have an API key
-    api_key = os.environ.get("GOOGLE_CLOUD_API_KEY")
-    if api_key:
-        # Use API key for authentication
-        from google.cloud import texttospeech_v1
-        from google.api_core import client_options as client_options_lib
-        
-        # Create client with API key
-        client_opts = client_options_lib.ClientOptions(api_key=api_key)
-        tts_client = texttospeech_v1.TextToSpeechClient(client_options=client_opts)
-        print("Google Cloud TTS client initialized successfully with API key")
+    elevenlabs_api_key = os.environ.get("ELEVENLABS_API_KEY")
+    if elevenlabs_api_key:
+        elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
+        print("ElevenLabs TTS client initialized successfully")
     else:
-        # Fall back to default credentials (service account, etc.)
-        tts_client = texttospeech.TextToSpeechClient()
-        print("Google Cloud TTS client initialized successfully with default credentials")
+        print("Warning: ELEVENLABS_API_KEY not found")
+        elevenlabs_client = None
 except Exception as e:
-    print(f"Warning: Could not initialize Google Cloud TTS client: {e}")
-    print("Make sure you have set up Google Cloud credentials")
-    tts_client = None
+    print(f"Warning: Could not initialize ElevenLabs client: {e}")
+    elevenlabs_client = None
 
 @app.route('/')
 def index():
@@ -130,10 +121,10 @@ def analyze_image():
         description_text = response.text
         print(f"Gemini response: {description_text}")
         
-        # Step 2: Convert text to audio using Google Cloud TTS
-        if tts_client is None:
+        # Step 2: Convert text to audio using ElevenLabs
+        if elevenlabs_client is None:
             # Fallback: return text if TTS is not available
-            print("Warning: TTS client not available, returning text only")
+            print("Warning: ElevenLabs client not available, returning text only")
             return jsonify({
                 'text': description_text,
                 'language': language_code
@@ -141,36 +132,27 @@ def analyze_image():
         
         # Try to generate audio, but fallback to text if it fails
         try:
-            # Get the proper BCP-47 language code for Google TTS
-            tts_language_code = LANGUAGE_CODE_MAP.get(language_code, 'en-US')
+            print(f"Generating audio with ElevenLabs for language: {language_code}")
             
-            # Configure TTS request
-            synthesis_input = texttospeech.SynthesisInput(text=description_text)
-            
-            # Select voice based on language
-            voice = texttospeech.VoiceSelectionParams(
-                language_code=tts_language_code,
-                ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+            # Generate speech using ElevenLabs
+            # Using the default multilingual voice
+            audio_generator = elevenlabs_client.text_to_speech.convert(
+                text=description_text,
+                voice_id="pNInz6obpgDQGcFmaJgB",  # Default multilingual voice (Adam)
+                model_id="eleven_multilingual_v2",
+                output_format="mp3_44100_128"
             )
             
-            # Configure audio output (MP3 format)
-            audio_config = texttospeech.AudioConfig(
-                audio_encoding=texttospeech.AudioEncoding.MP3
-            )
-            
-            print(f"Generating audio for language: {tts_language_code}")
-            
-            # Generate speech
-            tts_response = tts_client.synthesize_speech(
-                input=synthesis_input,
-                voice=voice,
-                audio_config=audio_config
-            )
+            # Collect all audio chunks
+            audio_bytes = b""
+            for chunk in audio_generator:
+                if isinstance(chunk, bytes):
+                    audio_bytes += chunk
             
             # Convert audio to base64 for transmission
-            audio_base64 = base64.b64encode(tts_response.audio_content).decode('utf-8')
+            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
             
-            print(f"Audio generated successfully ({len(tts_response.audio_content)} bytes)")
+            print(f"ElevenLabs audio generated successfully ({len(audio_bytes)} bytes)")
             
             return jsonify({
                 'audio': audio_base64,
@@ -180,7 +162,9 @@ def analyze_image():
             
         except Exception as tts_error:
             # If TTS fails, fallback to returning text for browser TTS
-            print(f"Warning: TTS generation failed: {tts_error}")
+            print(f"Warning: ElevenLabs generation failed: {tts_error}")
+            import traceback
+            traceback.print_exc()
             print("Falling back to browser TTS")
             return jsonify({
                 'text': description_text,

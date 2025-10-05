@@ -82,9 +82,9 @@ async function startCamera() {
         stopBtn.disabled = false;
         languageSelect.disabled = true;
         
-        updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
+        updateStatus('active', 'Camera active - Capturing every 1 second');
         
-        captureInterval = setInterval(captureAndAnalyze, 1500);
+        captureInterval = setInterval(captureAndAnalyze, 1000);
         
     } catch (error) {
         console.error('Error accessing camera:', error);
@@ -155,7 +155,7 @@ async function captureAndAnalyze() {
             console.log('Language:', data.language);
             updateStatus('active', 'Playing audio description...');
             await playAudio(data.audio);
-            updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
+            updateStatus('active', 'Camera active - Capturing every 1 second');
         } else if (data.text) {
             // Fallback: use browser TTS if no audio
             console.log('Received text (no audio), using browser TTS');
@@ -163,7 +163,7 @@ async function captureAndAnalyze() {
             console.log('Language:', data.language);
             updateStatus('active', 'Speaking description...');
             await speakText(data.text, data.language);
-            updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
+            updateStatus('active', 'Camera active - Capturing every 1 second');
         } else if (data.error) {
             throw new Error(data.error);
         }
@@ -173,7 +173,7 @@ async function captureAndAnalyze() {
         updateStatus('error', `Error: ${error.message}`);
         setTimeout(() => {
             if (stream) {
-                updateStatus('active', 'Camera active - Capturing every 1.5 seconds');
+                updateStatus('active', 'Camera active - Capturing every 1 second');
             }
         }, 3000);
     } finally {
