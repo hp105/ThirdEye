@@ -9,7 +9,7 @@ const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 
 let stream = null;
-let captureInterval = null;
+let isCapturing = false;
 let isProcessing = false;
 let availableVoices = [];
 let currentAudio = null;
@@ -89,9 +89,12 @@ async function startCamera() {
         startBtn.disabled = true;
         stopBtn.disabled = false;
         
-        updateStatus('active', 'Camera active - Capturing every 1 second');
+        isCapturing = true;
         
-        captureInterval = setInterval(captureAndAnalyze, 1000);
+        updateStatus('active', 'Camera active - Continuous real-time capture');
+        
+        // Start continuous capture loop
+        captureAndAnalyze();
         
     } catch (error) {
         console.error('Error accessing camera:', error);
@@ -101,10 +104,8 @@ async function startCamera() {
 }
 
 function stopCamera() {
-    if (captureInterval) {
-        clearInterval(captureInterval);
-        captureInterval = null;
-    }
+    // Stop the continuous capture loop
+    isCapturing = false;
     
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -125,12 +126,19 @@ function stopCamera() {
 }
 
 async function captureAndAnalyze() {
+    // Only proceed if we're still supposed to be capturing
+    if (!isCapturing) {
+        return;
+    }
+    
     if (isProcessing) {
         return;
     }
     
     isProcessing = true;
     updateStatus('processing', 'Capturing and analyzing...');
+    
+    let hadError = false;
     
     try {
         canvas.width = video.videoWidth;
@@ -166,7 +174,7 @@ async function captureAndAnalyze() {
             console.log('Language:', data.language);
             updateStatus('active', 'Playing audio description...');
             await playAudio(data.audio);
-            updateStatus('active', 'Camera active - Capturing every 1 second');
+            updateStatus('active', 'Camera active - Continuous real-time capture');
         } else if (data.text) {
             // Fallback: use browser TTS if no audio
             console.log('Received text (no audio), using browser TTS');
@@ -174,21 +182,36 @@ async function captureAndAnalyze() {
             console.log('Language:', data.language);
             updateStatus('active', 'Speaking description...');
             await speakText(data.text, data.language);
-            updateStatus('active', 'Camera active - Capturing every 1 second');
+            updateStatus('active', 'Camera active - Continuous real-time capture');
         } else if (data.error) {
             throw new Error(data.error);
         }
         
+        // Success - schedule next capture with minimal delay
+        isProcessing = false;
+        if (isCapturing) {
+            setTimeout(() => {
+                if (isCapturing) {
+                    captureAndAnalyze();
+                }
+            }, 100);
+        }
+        
     } catch (error) {
+        hadError = true;
         console.error('Error:', error);
         updateStatus('error', `Error: ${error.message}`);
-        setTimeout(() => {
-            if (stream) {
-                updateStatus('active', 'Camera active - Capturing every 1 second');
-            }
-        }, 3000);
-    } finally {
+        
+        // Wait before retrying on error to avoid flooding the server
         isProcessing = false;
+        if (isCapturing) {
+            setTimeout(() => {
+                if (isCapturing) {
+                    updateStatus('active', 'Camera active - Continuous real-time capture');
+                    captureAndAnalyze();
+                }
+            }, 3000);
+        }
     }
 }
 
