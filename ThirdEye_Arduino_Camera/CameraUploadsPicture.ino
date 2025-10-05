@@ -11,7 +11,7 @@ const char *ssid_Router = "OnePlus10pro";
 const char *password_Router = "Th!rdEye$#";
 
 // ThirdEye server upload URL
-const char *uploadUrl = "https://workspace-hupatel1052000.replit.dev/upload-arduino-image";
+const char *uploadUrl = "https://546e9492-4ee0-43ef-bf3d-7c1faac5136c-00-3b1hetrowy517.kirk.replit.dev/upload-arduino-image";
 
 camera_config_t config;
 
@@ -142,5 +142,5 @@ void setup() {
 void loop() {
   // Capture and upload image every 3 seconds
   uploadImageToThirdEye();
-  delay(3000);
+  delay(1000);
 }
