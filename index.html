@@ -17,9 +17,31 @@
         </header>
         
         <main>
+            <!-- Mode Toggle -->
+            <div class="mode-selector">
+                <div class="mode-label">Mode</div>
+                <div class="toggle-container">
+                    <input type="radio" id="liveMode" name="mode" value="live" checked>
+                    <input type="radio" id="navMode" name="mode" value="navigation">
+                    <label for="liveMode" class="mode-option">
+                        <span class="mode-icon">📸</span>
+                        <span class="mode-text">Live Capture</span>
+                    </label>
+                    <label for="navMode" class="mode-option">
+                        <span class="mode-icon">🧭</span>
+                        <span class="mode-text">Navigation</span>
+                    </label>
+                    <div class="toggle-slider"></div>
+                </div>
+                <div class="mode-description" id="modeDescription">
+                    Continuous real-time image capture and description
+                </div>
+            </div>
+            
             <div class="video-container">
                 <video id="video" autoplay playsinline></video>
                 <canvas id="canvas" style="display: none;"></canvas>
+                <div class="video-overlay" id="videoOverlay"></div>
             </div>
             
             <div class="status">
@@ -33,7 +55,7 @@
                 <div class="setting-group">
                     <label for="languageSelect">
                         <span class="label-icon">🌐</span>
-                        Description Language
+                        Choose Language for output
                     </label>
                     <select id="languageSelect" class="select-input">
                         <option value="en">English</option>
@@ -62,7 +84,7 @@
                 <div class="setting-group">
                     <label for="speedSlider">
                         <span class="label-icon">🎚️</span>
-                        Voice Speed: <span id="speedValue">1.0x</span>
+                        Voice output speed: <span id="speedValue">1.0x</span>
                     </label>
                     <input type="range" id="speedSlider" min="0.5" max="2.5" step="0.1" value="1.0" class="slider">
                     <div class="slider-labels">

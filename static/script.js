@@ -7,12 +7,16 @@ const statusText = document.getElementById('statusText');
 const languageSelect = document.getElementById('languageSelect');
 const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
+const modeDescription = document.getElementById('modeDescription');
+const liveModeRadio = document.getElementById('liveMode');
+const navModeRadio = document.getElementById('navMode');
 
 let stream = null;
 let isCapturing = false;
 let isProcessing = false;
 let availableVoices = [];
 let currentAudio = null;
+let currentMode = 'live';
 
 // Load available voices
 function loadVoices() {
@@ -46,6 +50,21 @@ speedSlider.addEventListener('input', (e) => {
         console.log('Updated playback speed to:', newSpeed);
     }
 });
+
+// Mode toggle event listeners
+function updateModeDescription() {
+    if (liveModeRadio.checked) {
+        currentMode = 'live';
+        modeDescription.textContent = 'Continuous real-time image capture and description';
+    } else {
+        currentMode = 'navigation';
+        modeDescription.textContent = 'Navigation mode with obstacle detection, proximity alerts, and shorter descriptions';
+    }
+    console.log('Mode changed to:', currentMode);
+}
+
+liveModeRadio.addEventListener('change', updateModeDescription);
+navModeRadio.addEventListener('change', updateModeDescription);
 
 function updateStatus(status, message) {
     statusDot.className = `status-dot ${status}`;
@@ -157,7 +176,8 @@ async function captureAndAnalyze() {
             },
             body: JSON.stringify({ 
                 image: imageData,
-                language: selectedLanguage
+                language: selectedLanguage,
+                mode: currentMode
             })
         });
         

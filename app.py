@@ -84,6 +84,7 @@ def analyze_image():
             
         image_data = data.get('image')
         language_code = data.get('language', 'en')
+        mode = data.get('mode', 'live')  # Get mode (live or navigation)
         
         if not image_data:
             return jsonify({'error': 'No image data provided'}), 400
@@ -96,11 +97,21 @@ def analyze_image():
         language_name = LANGUAGE_NAMES.get(language_code, 'English')
         
         # Step 1: Get text description from Gemini
-        if language_code == 'en':
-            prompt = "Describe this image concisely, in a single sentence, for a screen reader or visually impaired user."
+        # Different prompts based on mode
+        if mode == 'navigation':
+            # Navigation mode: shorter, obstacle-focused descriptions
+            if language_code == 'en':
+                prompt = "For a visually impaired user navigating: in 5-10 words, identify obstacles, hazards, or clear path ahead. Focus on immediate safety and navigation."
+            else:
+                prompt = f"You must respond ONLY in {language_name}. For a visually impaired user navigating: in 5-10 words, identify obstacles, hazards, or clear path ahead. Focus on immediate safety and navigation. Your entire response must be in {language_name}."
         else:
-            prompt = f"You must respond ONLY in {language_name}. Describe this image concisely, in a single sentence, for a screen reader or visually impaired user. Your entire response must be in {language_name}, not English."
+            # Live capture mode: detailed descriptions
+            if language_code == 'en':
+                prompt = "Describe this image concisely, in a single sentence, for a screen reader or visually impaired user."
+            else:
+                prompt = f"You must respond ONLY in {language_name}. Describe this image concisely, in a single sentence, for a screen reader or visually impaired user. Your entire response must be in {language_name}, not English."
         
+        print(f"Mode: {mode}")
         print(f"Language requested: {language_name} ({language_code})")
         print(f"Prompt: {prompt}")
         
