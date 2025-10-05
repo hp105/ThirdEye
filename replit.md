@@ -2,7 +2,7 @@
 
 ## Overview
 
-ThirdEye is a real-time AI-powered vision assistance application designed to help visually impaired users understand their surroundings through their device camera. The application captures images at regular intervals (every 1.5 seconds) and uses Google's Gemini AI to generate concise, spoken descriptions in multiple languages. The system provides audio feedback using browser-native text-to-speech, making it highly accessible for visually impaired users with customizable voice speeds.
+ThirdEye is a real-time AI-powered vision assistance application designed to help visually impaired users understand their surroundings through their device camera. The application captures images at regular intervals (every 1 second) and uses Google's Gemini AI to generate concise, spoken descriptions in multiple languages. The system provides high-quality audio feedback using ElevenLabs text-to-speech with ultra-realistic voices, making it highly accessible for visually impaired users with real-time adjustable voice speeds and instant language switching.
 
 ## User Preferences
 
@@ -19,21 +19,25 @@ Preferred communication style: Simple, everyday language.
 - Finally attempts default camera as last resort
 - This progressive degradation ensures maximum device compatibility
 
-**Capture Strategy**: Implements interval-based image capture (1.5 seconds) rather than continuous streaming to:
-- Reduce API costs and server load
-- Provide digestible information flow for users
-- Balance responsiveness with system resources
+**Capture Strategy**: Implements interval-based image capture (1 second) rather than continuous streaming to:
+- Provide fast, responsive descriptions of surroundings
+- Balance real-time feedback with API costs
+- Ensure digestible information flow for users
 
 **User Interface**: Modern, accessible design with:
 - ThirdEye branding with eye icon and animated effects
 - Live video preview for sighted companions
 - Clear status indicators (visual dots with color states: active/processing/error)
-- Language selection dropdown with 20 languages
-- Voice speed slider (0.5x - 2.5x) for customizable playback
+- Language selection dropdown with 20 languages (switchable during operation)
+- Voice speed slider (0.5x - 2.5x) with real-time adjustment during playback
 - Large, accessible control buttons with icons
 - Gradient background (indigo to purple to pink) for visual appeal
 - Smooth animations and transitions
 - Fully responsive design for mobile and desktop
+
+**Dynamic Features**:
+- **Real-time Speed Control**: Users can adjust playback speed (0.5x - 2.5x) even while audio is playing, and the change takes effect immediately
+- **Instant Language Switching**: Users can change the output language at any time during operation without stopping the camera - the next description will use the new language
 
 ### Backend Architecture
 **Flask Application**: Lightweight Python web server chosen for:
@@ -48,21 +52,28 @@ Preferred communication style: Simple, everyday language.
 
 **AI Integration**: Uses Google Gemini 2.5 Flash model with:
 - Multimodal input (image + text prompt)
-- Text response that is converted to speech via browser's Web Speech API
+- Text response that is converted to speech via ElevenLabs API
 - Multilingual support (20 languages) with dynamic prompt generation
 - Optimized prompt: "Describe this image concisely, in a single sentence, for a screen reader or visually impaired user. Respond in {language}."
+
+**Text-to-Speech**: Uses ElevenLabs API for high-quality audio generation:
+- Model: `eleven_multilingual_v2` for ultra-realistic multilingual voices
+- Default voice: "Adam" (pNInz6obpgDQGcFmaJgB) - supports 32+ languages
+- Output format: MP3 at 44.1kHz, 128kbps
+- Fallback: Browser Web Speech API if ElevenLabs fails
 
 **CORS Configuration**: Enables cross-origin requests to support development and potential frontend-backend separation.
 
 ### Data Flow
-1. User selects preferred language and voice speed
-2. Frontend captures video frame to canvas element (hidden) every 1.5 seconds
+1. User selects preferred language and voice speed (changeable anytime during operation)
+2. Frontend captures video frame to canvas element (hidden) every 1 second
 3. Canvas converts frame to base64-encoded JPEG
 4. Image data and language code sent to `/analyze` endpoint via fetch API
 5. Backend decodes image and sends to Gemini API with language-specific prompt
 6. Gemini returns text description in the requested language
-7. Frontend receives text and uses Web Speech API to speak it at selected speed
-8. Cycle repeats every 1.5 seconds while camera is active
+7. Backend sends text to ElevenLabs API to generate MP3 audio
+8. Frontend receives audio and plays it at the selected speed (adjustable in real-time)
+9. Cycle repeats every 1 second while camera is active
 
 ### Error Handling
 - Frontend includes try-catch blocks for camera access with multiple fallback attempts
@@ -82,6 +93,7 @@ Preferred communication style: Simple, everyday language.
 - **Flask**: Web framework for HTTP server and routing
 - **flask-cors**: CORS middleware for cross-origin requests
 - **google-genai**: Official Google Generative AI Python client
+- **elevenlabs**: ElevenLabs API client for text-to-speech generation
 
 ### Browser APIs
 - **MediaDevices API**: Camera access and video streaming with fallback logic
