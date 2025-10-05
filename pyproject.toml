@@ -7,7 +7,6 @@ dependencies = [
     "elevenlabs>=2.16.0",
     "flask>=3.1.2",
     "flask-cors>=6.0.1",
-    "google-cloud-texttospeech>=2.31.0",
     "google-genai>=1.41.0",
     "sift-stack-py>=0.9.1",
 ]
