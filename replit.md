@@ -2,7 +2,7 @@
 
 ## Overview
 
-ThirdEye is a real-time AI-powered vision assistance application designed to help visually impaired users understand their surroundings through their device camera. The application captures images at regular intervals (every 1 second) and uses Google's Gemini AI to generate concise, spoken descriptions in multiple languages. The system provides high-quality audio feedback using ElevenLabs text-to-speech with ultra-realistic voices, making it highly accessible for visually impaired users with real-time adjustable voice speeds and instant language switching.
+ThirdEye is a real-time AI-powered vision assistance application designed to help visually impaired users understand their surroundings through their device camera. The application continuously captures and analyzes images in real-time, using Google's Gemini AI to generate concise, spoken descriptions in multiple languages. The system provides high-quality audio feedback using ElevenLabs text-to-speech with ultra-realistic voices, making it highly accessible for visually impaired users with real-time adjustable voice speeds and instant language switching.
 
 ## User Preferences
 
@@ -19,10 +19,11 @@ Preferred communication style: Simple, everyday language.
 - Finally attempts default camera as last resort
 - This progressive degradation ensures maximum device compatibility
 
-**Capture Strategy**: Implements interval-based image capture (1 second) rather than continuous streaming to:
-- Provide fast, responsive descriptions of surroundings
-- Balance real-time feedback with API costs
-- Ensure digestible information flow for users
+**Capture Strategy**: Implements continuous real-time image capture with intelligent throttling:
+- Captures and analyzes as fast as possible (typically 3-10 seconds per cycle depending on API response time)
+- 100ms delay between successful captures to prevent browser/server overload
+- 3-second backoff on errors to prevent flooding during failures
+- Provides true real-time descriptions of the user's surroundings
 
 **User Interface**: Modern, accessible design with:
 - ThirdEye branding with eye icon and animated effects
@@ -66,14 +67,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Flow
 1. User selects preferred language and voice speed (changeable anytime during operation)
-2. Frontend captures video frame to canvas element (hidden) every 1 second
+2. Frontend captures video frame to canvas element (hidden) continuously
 3. Canvas converts frame to base64-encoded JPEG
 4. Image data and language code sent to `/analyze` endpoint via fetch API
 5. Backend decodes image and sends to Gemini API with language-specific prompt
 6. Gemini returns text description in the requested language
 7. Backend sends text to ElevenLabs API to generate MP3 audio
 8. Frontend receives audio and plays it at the selected speed (adjustable in real-time)
-9. Cycle repeats every 1 second while camera is active
+9. After 100ms delay, cycle immediately repeats while camera is active (continuous loop)
+10. On errors, waits 3 seconds before retrying to prevent server flooding
 
 ### Error Handling
 - Frontend includes try-catch blocks for camera access with multiple fallback attempts
