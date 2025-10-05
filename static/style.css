@@ -185,6 +185,107 @@ h1 {
     justify-content: center;
 }
 
+/* Camera Source Selector */
+.camera-source-selector {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 25px;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.source-label {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #374151;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.source-toggle-container {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: #fff;
+    padding: 6px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) inset;
+    margin-bottom: 15px;
+}
+
+.source-toggle-container input[type="radio"] {
+    display: none;
+}
+
+.source-option {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 18px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.source-icon {
+    font-size: 2rem;
+    transition: transform 0.3s ease;
+}
+
+.source-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #6b7280;
+    transition: color 0.3s ease;
+}
+
+.source-toggle-container input[type="radio"]:checked + .source-option .source-text {
+    color: #fff;
+}
+
+.source-toggle-container input[type="radio"]:checked + .source-option .source-icon {
+    transform: scale(1.15);
+}
+
+.source-toggle-slider {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: calc(50% - 5px);
+    height: calc(100% - 12px);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 12px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.source-toggle-container input[type="radio"]:nth-of-type(2):checked ~ .source-toggle-slider {
+    transform: translateX(calc(100% + 10px));
+}
+
+.source-description {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 10px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Video Container */
 .video-container {
     position: relative;

@@ -38,6 +38,27 @@
                 </div>
             </div>
             
+            <!-- Camera Source Selector -->
+            <div class="camera-source-selector">
+                <div class="source-label">Camera Source</div>
+                <div class="source-toggle-container">
+                    <input type="radio" id="deviceCamera" name="cameraSource" value="device" checked>
+                    <input type="radio" id="arduinoCamera" name="cameraSource" value="arduino">
+                    <label for="deviceCamera" class="source-option">
+                        <span class="source-icon">📱</span>
+                        <span class="source-text">Device Camera</span>
+                    </label>
+                    <label for="arduinoCamera" class="source-option">
+                        <span class="source-icon">🤖</span>
+                        <span class="source-text">Arduino Camera</span>
+                    </label>
+                    <div class="source-toggle-slider"></div>
+                </div>
+                <div class="source-description" id="sourceDescription">
+                    Using your device's built-in camera
+                </div>
+            </div>
+            
             <div class="video-container">
                 <video id="video" autoplay playsinline></video>
                 <canvas id="canvas" style="display: none;"></canvas>
