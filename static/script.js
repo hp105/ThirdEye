@@ -10,6 +10,9 @@ const speedValue = document.getElementById('speedValue');
 const modeDescription = document.getElementById('modeDescription');
 const liveModeRadio = document.getElementById('liveMode');
 const navModeRadio = document.getElementById('navMode');
+const sourceDescription = document.getElementById('sourceDescription');
+const deviceCameraRadio = document.getElementById('deviceCamera');
+const arduinoCameraRadio = document.getElementById('arduinoCamera');
 
 let stream = null;
 let isCapturing = false;
@@ -17,6 +20,8 @@ let isProcessing = false;
 let availableVoices = [];
 let currentAudio = null;
 let currentMode = 'live';
+let currentCameraSource = 'device';
+const ARDUINO_CAMERA_URL = 'https://mythoclastic-sustainingly-carolynn.ngrok-free.dev';
 
 // Load available voices
 function loadVoices() {
@@ -66,6 +71,21 @@ function updateModeDescription() {
 liveModeRadio.addEventListener('change', updateModeDescription);
 navModeRadio.addEventListener('change', updateModeDescription);
 
+// Camera source toggle event listeners
+function updateCameraSourceDescription() {
+    if (deviceCameraRadio.checked) {
+        currentCameraSource = 'device';
+        sourceDescription.textContent = "Using your device's built-in camera";
+    } else {
+        currentCameraSource = 'arduino';
+        sourceDescription.textContent = 'Using Arduino camera stream from ngrok';
+    }
+    console.log('Camera source changed to:', currentCameraSource);
+}
+
+deviceCameraRadio.addEventListener('change', updateCameraSourceDescription);
+arduinoCameraRadio.addEventListener('change', updateCameraSourceDescription);
+
 function updateStatus(status, message) {
     statusDot.className = `status-dot ${status}`;
     statusText.textContent = message;
@@ -73,8 +93,6 @@ function updateStatus(status, message) {
 
 async function startCamera() {
     try {
-        updateStatus('', 'Requesting camera access...');
-        
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const silentUtterance = new SpeechSynthesisUtterance('');
@@ -82,28 +100,37 @@ async function startCamera() {
             window.speechSynthesis.speak(silentUtterance);
         }
         
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' },
-                audio: false
-            });
-        } catch (envError) {
-            console.log('Rear camera not available, trying front camera...');
+        // Only access device camera if using device camera source
+        if (currentCameraSource === 'device') {
+            updateStatus('', 'Requesting camera access...');
+            
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user' },
+                    video: { facingMode: 'environment' },
                     audio: false
                 });
-            } catch (userError) {
-                console.log('Specific camera not available, trying default...');
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false
-                });
+            } catch (envError) {
+                console.log('Rear camera not available, trying front camera...');
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user' },
+                        audio: false
+                    });
+                } catch (userError) {
+                    console.log('Specific camera not available, trying default...');
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                }
             }
+            
+            video.srcObject = stream;
+        } else {
+            // Arduino camera - no device camera needed
+            updateStatus('', 'Connecting to Arduino camera...');
+            console.log('Using Arduino camera from:', ARDUINO_CAMERA_URL);
         }
-        
-        video.srcObject = stream;
         
         startBtn.disabled = true;
         stopBtn.disabled = false;
@@ -144,6 +171,33 @@ function stopCamera() {
     updateStatus('', 'Ready to start');
 }
 
+// Fetch image from Arduino camera
+async function fetchArduinoImage() {
+    try {
+        const response = await fetch(ARDUINO_CAMERA_URL, {
+            method: 'GET',
+            headers: {
+                'ngrok-skip-browser-warning': 'true'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Arduino image: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error('Error fetching Arduino camera image:', error);
+        throw error;
+    }
+}
+
 async function captureAndAnalyze() {
     // Only proceed if we're still supposed to be capturing
     if (!isCapturing) {
@@ -160,13 +214,23 @@ async function captureAndAnalyze() {
     let hadError = false;
     
     try {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        let imageData;
         
-        const context = canvas.getContext('2d');
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Get image from the selected camera source
+        if (currentCameraSource === 'arduino') {
+            // Fetch from Arduino camera via ngrok
+            imageData = await fetchArduinoImage();
+        } else {
+            // Capture from device camera
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            imageData = canvas.toDataURL('image/jpeg', 0.8);
+        }
         
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
         const selectedLanguage = languageSelect.value;
         
         const response = await fetch('/analyze', {
