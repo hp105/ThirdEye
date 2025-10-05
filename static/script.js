@@ -12,6 +12,7 @@ let stream = null;
 let captureInterval = null;
 let isProcessing = false;
 let availableVoices = [];
+let currentAudio = null;
 
 // Load available voices
 function loadVoices() {
@@ -36,7 +37,14 @@ if ('speechSynthesis' in window) {
 }
 
 speedSlider.addEventListener('input', (e) => {
-    speedValue.textContent = e.target.value + 'x';
+    const newSpeed = parseFloat(e.target.value);
+    speedValue.textContent = newSpeed + 'x';
+    
+    // Update playback speed in real-time if audio is currently playing
+    if (currentAudio) {
+        currentAudio.playbackRate = newSpeed;
+        console.log('Updated playback speed to:', newSpeed);
+    }
 });
 
 function updateStatus(status, message) {
@@ -80,7 +88,6 @@ async function startCamera() {
         
         startBtn.disabled = true;
         stopBtn.disabled = false;
-        languageSelect.disabled = true;
         
         updateStatus('active', 'Camera active - Capturing every 1 second');
         
@@ -108,7 +115,11 @@ function stopCamera() {
     
     startBtn.disabled = false;
     stopBtn.disabled = true;
-    languageSelect.disabled = false;
+    
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
     
     updateStatus('', 'Ready to start');
 }
@@ -149,8 +160,8 @@ async function captureAndAnalyze() {
         const data = await response.json();
         
         if (data.audio) {
-            // We received audio from Google Cloud TTS
-            console.log('Received audio data from Google TTS');
+            // We received audio from ElevenLabs TTS
+            console.log('Received audio data from ElevenLabs');
             console.log('Text:', data.text);
             console.log('Language:', data.language);
             updateStatus('active', 'Playing audio description...');
@@ -184,6 +195,12 @@ async function captureAndAnalyze() {
 function playAudio(base64Audio) {
     return new Promise((resolve, reject) => {
         try {
+            // Stop any currently playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            
             // Convert base64 to blob
             const binaryString = atob(base64Audio);
             const bytes = new Uint8Array(binaryString.length);
@@ -195,6 +212,7 @@ function playAudio(base64Audio) {
             
             // Create audio element
             const audio = new Audio(audioUrl);
+            currentAudio = audio;
             
             // Set playback speed from slider
             const currentSpeed = parseFloat(speedSlider.value);
@@ -206,18 +224,21 @@ function playAudio(base64Audio) {
             audio.onended = () => {
                 console.log('Audio playback completed');
                 URL.revokeObjectURL(audioUrl);
+                currentAudio = null;
                 resolve();
             };
             
             audio.onerror = (error) => {
                 console.error('Audio playback error:', error);
                 URL.revokeObjectURL(audioUrl);
+                currentAudio = null;
                 reject(error);
             };
             
             audio.play().catch(error => {
                 console.error('Failed to play audio:', error);
                 URL.revokeObjectURL(audioUrl);
+                currentAudio = null;
                 reject(error);
             });
             
